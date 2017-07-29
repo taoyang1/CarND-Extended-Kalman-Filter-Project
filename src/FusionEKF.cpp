@@ -91,18 +91,22 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       */
       // rho, theta, ro_dot;
       ekf_.x_ << measurement_pack.raw_measurements_(0)*cos(measurement_pack.raw_measurements_(1)), 
-      measurement_pack.raw_measurements_(0)*sin(measurement_pack.raw_measurements_(1)), 1,1;
+      measurement_pack.raw_measurements_(0)*sin(measurement_pack.raw_measurements_(1)), 0, 0;
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       /**
       Initialize state.
       */
-      ekf_.x_ << measurement_pack.raw_measurements_(0), measurement_pack.raw_measurements_(1), 1, 1;
+      ekf_.x_ << measurement_pack.raw_measurements_(0), measurement_pack.raw_measurements_(1), 0, 0;
     }
 
     previous_timestamp_ = measurement_pack.timestamp_;
     // done initializing, no need to predict or update
     is_initialized_ = true;
+
+    cout << "initial x:"<< ekf_.x_ <<endl;
+    cout << "initial meas type:" << measurement_pack.sensor_type_ << endl;
+    cout << "initial measurment:" << measurement_pack.raw_measurements_ << endl;
     return;
   }
 
@@ -122,6 +126,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0; //dt - expressed in seconds
   previous_timestamp_ = measurement_pack.timestamp_;
 
+  cout << "dt:" << dt << endl;
+
   float dt_2 = dt * dt;
   float dt_3 = dt_2 * dt;
   float dt_4 = dt_3 * dt;
@@ -140,6 +146,10 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
   ekf_.Predict();
 
+  cout <<" Predict:"<< endl;
+  cout << "x_ = " << ekf_.x_ << endl;
+  cout << "P_ = " << ekf_.P_ << endl;
+
   /*****************************************************************************
    *  Update
    ****************************************************************************/
@@ -152,8 +162,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
     // Radar updates
-    H_j = tools.CalculateJacobian(ekf_.x_); 
-    ekf_.H_ = H_j;
+    Hj_ = tools.CalculateJacobian(ekf_.x_); 
+    ekf_.H_ = Hj_;
     ekf_.R_ = R_radar_;
     ekf_.UpdateEKF(measurement_pack.raw_measurements_);
   } else {
@@ -164,6 +174,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   }
 
   // print the output
+  cout << "meas type:" << measurement_pack.sensor_type_ << endl;
+  cout << "meas data: " << measurement_pack.raw_measurements_ << endl;
   cout << "x_ = " << ekf_.x_ << endl;
   cout << "P_ = " << ekf_.P_ << endl;
 }
